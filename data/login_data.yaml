@@ -1,0 +1,31 @@
+# 登录测试数据
+login_cases:
+  - case_id: TC-LOGIN-001
+    desc: "正确账号登录"
+    username: "standard_user"
+    password: "secret_sauce"
+    expected: "success"
+
+  - case_id: TC-LOGIN-002
+    desc: "锁定用户登录"
+    username: "locked_out_user"
+    password: "secret_sauce"
+    expected: "Epic sadface: Sorry, this user has been locked out."
+
+  - case_id: TC-LOGIN-003
+    desc: "错误密码"
+    username: "standard_user"
+    password: "wrong_password"
+    expected: "Epic sadface: Username and password do not match any user in this service"
+
+  - case_id: TC-LOGIN-004
+    desc: "空用户名"
+    username: ""
+    password: "secret_sauce"
+    expected: "Epic sadface: Username is required"
+
+  - case_id: TC-LOGIN-005
+    desc: "空密码"
+    username: "standard_user"
+    password: ""
+    expected: "Epic sadface: Password is required"
