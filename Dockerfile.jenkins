@@ -1,0 +1,34 @@
+# 基于 Jenkins 官方镜像
+FROM jenkins/jenkins:lts-jdk17
+
+# 切到 root 用户安装软件
+USER root
+
+# 换 Debian 源为清华镜像（加速）
+RUN sed -i 's#deb.debian.org#mirrors.tuna.tsinghua.edu.cn#g' /etc/apt/sources.list.d/debian.sources 2>/dev/null || true
+
+# 安装系统依赖：Python、Git、CA证书、unzip、curl
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    python3-venv \
+    git \
+    ca-certificates \
+    unzip \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# 换 pip 源为清华镜像
+RUN pip3 config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple --break-system-packages || true
+
+# 安装 Python 测试依赖
+RUN pip3 install --break-system-packages \
+    pytest \
+    selenium \
+    requests \
+    pyyaml \
+    allure-pytest \
+    flask
+
+# 切回 jenkins 用户
+USER jenkins
