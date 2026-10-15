@@ -1,5 +1,10 @@
 pipeline {
     agent any
+     parameters {
+        choice(name: 'TEST_ENV',
+               choices: ['dev', 'test', 'prod'],
+               description: '选择测试环境')
+    }
 
     triggers {
         pollSCM('H/1 * * * *')
@@ -33,10 +38,15 @@ pipeline {
 
         stage('Run API Tests') {
             steps {
-                sh '''
-                    cd project
-                    pytest tests_api/ -v --alluredir=allure-results
-                '''
+                  sh '''
+            cd project
+            pytest tests_api/ -v -n auto \
+                --cov=api \
+                --cov-report=xml:coverage.xml \
+                --cov-report=html:htmlcov \
+                --alluredir=allure-results
+               '''
+
             }
         }
     }
@@ -50,6 +60,19 @@ pipeline {
                 fi
             '''
             archiveArtifacts artifacts: 'project/allure-results/**', allowEmptyArchive: true
+
+            allure includeProperties: false, jdk: '',
+               results: [[path: 'project/allure-results']]
+
+        // 发布覆盖率报告
+        step([
+            $class: 'CoberturaPublisher',
+            coberturaReportFile: 'project/coverage.xml',
+            onlyStable: false,
+            failUnhealthy: false,
+            failUnstable: false,
+            failNoReports: false
+        ])
         }
     }
 }
