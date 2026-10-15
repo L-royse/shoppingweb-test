@@ -35,7 +35,7 @@ pipeline {
             steps {
                 sh '''
                     cd project
-                    pytest tests_api/ -v
+                    pytest tests_api/ -v --alluredir=allure-results
                 '''
             }
         }
@@ -49,6 +49,7 @@ pipeline {
                     rm -f project/mock.pid
                 fi
             '''
+            archiveArtifacts artifacts: 'project/allure-results/**', allowEmptyArchive: true
         }
     }
 }
