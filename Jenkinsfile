@@ -1,13 +1,10 @@
+@Library('my-shared-lib') _
+
 pipeline {
     agent any
-     parameters {
-        choice(name: 'TEST_ENV',
-               choices: ['dev', 'test', 'prod'],
-               description: '选择测试环境')
-    }
 
     triggers {
-        pollSCM('H/1 * * * *')
+        pollSCM('H/5 * * * *')
     }
 
     stages {
@@ -25,54 +22,36 @@ pipeline {
 
         stage('Start Mock Server') {
             steps {
-                sh '''
-                    cd project
-                    nohup python3 mock_server.py > mock.log 2>&1 &
-                    echo $! > mock.pid
-                    sleep 3
-                    cat mock.log
-                    curl -s http://127.0.0.1:5000/posts | head -c 200
-                '''
+                startMockServer()
             }
         }
 
         stage('Run API Tests') {
             steps {
-                  sh '''
-            cd project
-            pytest tests_api/ -v -n auto \
-                --cov=api \
-                --cov-report=xml:coverage.xml \
-                --cov-report=html:htmlcov \
-                --alluredir=allure-results
-               '''
-
+                runApiTests(env: 'dev', parallel: true, withCoverage: true)
             }
         }
     }
 
     post {
         always {
-            sh '''
-                if [ -f project/mock.pid ]; then
-                    kill $(cat project/mock.pid) || true
-                    rm -f project/mock.pid
-                fi
-            '''
+            stopMockServer()
+
             archiveArtifacts artifacts: 'project/allure-results/**', allowEmptyArchive: true
 
             allure includeProperties: false, jdk: '',
-               results: [[path: 'project/allure-results']]
+                   results: [[path: 'project/allure-results']]
 
-        // 发布覆盖率报告
-        step([
-            $class: 'CoberturaPublisher',
-            coberturaReportFile: 'project/coverage.xml',
-            onlyStable: false,
-            failUnhealthy: false,
-            failUnstable: false,
-            failNoReports: false
-        ])
+            step([
+                $class: 'CoberturaPublisher',
+                coberturaReportFile: 'project/coverage.xml',
+                onlyStable: false,
+                failUnhealthy: false,
+                failUnstable: false,
+                failNoReports: false
+            ])
+
+            sendNotification(currentBuild.currentResult)
         }
     }
 }
